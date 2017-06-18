@@ -5,6 +5,9 @@ Bitcoin trading bot using Tensorflow
 ## Instalation
 ### Cloning the Repo
 
+Follow these instructions https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/
+
+
 First generate a new ssh key. (Press Enter for default directory and Enter for no password)
 ```shell
 ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
