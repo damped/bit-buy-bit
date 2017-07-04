@@ -27,4 +27,10 @@ And clone it into your ~ (home) directory
 git clone git@github.com:damped/bit-buy-bit.git
 ```
 
+### Install Requirements
+
+```shell
+sudo pip3 install -U -r reqirements.txt
+```
+
 
