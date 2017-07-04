@@ -1,0 +1,9 @@
+
+
+tensorflow-gpu
+keras
+krakenex
+
+
+
+
