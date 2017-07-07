@@ -3,7 +3,7 @@
 tensorflow-gpu
 keras
 krakenex
-
+pandas
 
 
 
