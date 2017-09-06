@@ -33,7 +33,19 @@ while 1:
 			pass
 
 	last = r["result"]["last"]	
-
-	pp.pprint((last, r["result"]["XXBTZUSD"]))
+	
+	data = r["result"]["XXBTZUSD"]	
+	
+	pp.pprint(data)
 
 	time.sleep(6)
+
+
+
+
+
+
+
+
+
+
