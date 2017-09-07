@@ -6,6 +6,7 @@ import krakenex
 import json
 import pprint
 import time
+import csv
 
 k = krakenex.API()
 #k.load_key('kraken.key')
@@ -27,7 +28,7 @@ while 1:
 			pass
 	else:
 		try:
-			r = k.query_public('Trades', {'pair': 'XXBTZUSD', 'since': 'last'})
+			r = k.query_public('Trades', {'pair': 'XXBTZUSD', 'since': last})
 		except:
 			print("Connection Error...")
 			pass
@@ -37,7 +38,14 @@ while 1:
 	data = r["result"]["XXBTZUSD"]	
 	
 	pp.pprint(data)
+	
+	with open('tradesLog.csv', 'a', newline='') as csvfile:
+		writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+	
+		for line in data:
+			writer.writerow(line)
 
+	
 	time.sleep(6)
 
 
