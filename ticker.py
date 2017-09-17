@@ -22,10 +22,17 @@ while 1:
 	if last == None:
 		print("No last time")
 		try:
-			r = k.query_public('Trades', {'pair': 'XXBTZUSD'})
+		    r = k.query_public('Trades', {'pair': 'XXBTZUSD'})
 		except:
-			print("Connecton Error...")
-			pass
+	    	    print("Connecton Error...")
+		    pass
+                try:
+                    
+                    with open('tradesLog.csv', 'r') as csvfile:
+                        reader = 
+                except:
+                    print("Error opening tradesLog.csv")
+
 	else:
 		try:
 			r = k.query_public('Trades', {'pair': 'XXBTZUSD', 'since': last})
