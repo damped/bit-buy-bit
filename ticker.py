@@ -17,45 +17,59 @@ pp = pprint.PrettyPrinter(indent=4)
 
 last = None
 
+try:
+    with open('tradesLog.csv', 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        
+        print("CSV FILE")
+        
+        #row_count = sum(1 for row in reader)
+        all_lines = list(reader)
+        last_line = all_lines[-1]
+
+        last = last_line["result"]["last"]
+        print("Last: " + last)
+        
+except:
+    print("Error opening tradesLog.csv")
+    raise
+
+
 while 1:
 
     if last == None:
+        
+        
+        
         print("No last time")
         try:
             r = k.query_public('Trades', {'pair': 'XXBTZUSD'})
         except:
             print("Connecton Error...")
-            pass
+            raise
+         
         
-        try:
-            with open('tradesLog.csv', 'r') as csvfile:
-                reader = csv.reader(csvfile, delimiter=' ', quoatechar='|')
-                for row in reader:
-                    print(row)
-        except:
-            print("Error opening tradesLog.csv")
-
     else:
         try:
             r = k.query_public('Trades', {'pair': 'XXBTZUSD', 'since': last})
         except:
             print("Connection Error...")
-            pass
+            raise
 
-        last = r["result"]["last"]
+    last = r["result"]["last"]
 
-        data = r["result"]["XXBTZUSD"]
+    data = r["result"]["XXBTZUSD"]
 
-        pp.pprint(data)
+    pp.pprint(data)
 
-        with open('tradesLog.csv', 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    with open('tradesLog.csv', 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
-            for line in data:
-                writer.writerow(line)
+        for line in data:
+            writer.writerow(line)
 
 
-        time.sleep(6)
+    time.sleep(6)
 
 
 
