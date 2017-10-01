@@ -2,45 +2,41 @@
 
 '''Used to continuesly pull market data'''
 
-import krakenex
-import json
-import pprint
-import time
-import csv
+import krakenex #api libary
+import time     #for polling the data every few seconds
+import datetime #used to convert from unix time
+import csv      #csv file read and write
 
-import q #debugger
 
-k = krakenex.API()
+k = krakenex.API()  #instatiate api
 #k.load_key('kraken.key')
 
-pp = pprint.PrettyPrinter(indent=4)
 
-#pp.pprint(k.query_private('TradeBalance'))
 
-last = None
+
+
+last = None     #if there is nothing in the csv file start from here
+
 
 try:
     with open('tradesLog.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         
-        print("CSV FILE")
+        print("RESUMING CSV FILE\n")
         
-        #row_count = sum(1 for row in reader)
-        all_lines = list(reader)
-        q(all_lines[-1])
-        last_line = all_lines[-1][2]
+        all_lines = list(reader)        #go through all lines in the reader object and put them in a list
+        last_line = all_lines[-1][6]    #get the timestamp from the last line
 
-        #q(last_line)
-        last = int(last_line.replace('.',''))
+        last = int(last_line)
         
         
-        
-        q(last)
-
-        
+        print('-' * 50 )
 
         print("Last time in csv file: " + str(last))
+        print(datetime.datetime.fromtimestamp(last/10**9).strftime('[%Y-%m-%d]  %A %B %e, %l:%M %p'))
         
+        print('-' * 50 + "\n")
+
 except:
     print("Error opening tradesLog.csv")
     #raise
@@ -74,20 +70,17 @@ while 1:
     data[-1:].append(last)
     
 
-    q(data[-1:])
-    #q(last) 
-    
-    #q(type(data[2][2]))
-
     with open('tradesLog.csv', 'a', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
-        #for line in data:
-        #    #q(line)
-        #    writer.writerow(line)
-        writer.writerows(data)
+        for line in data:
+            print(line)
+            line.append(last)
+            writer.writerow(line)
+        
+        
+        #writer.writerows(data)
 
-        #writer.append
 
 
     time.sleep(6)
