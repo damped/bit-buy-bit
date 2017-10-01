@@ -101,8 +101,11 @@ ENV/
 .mypy_cache/
 
 
+# Vim
+*.swp
+
 #### KEYS!!!
 kraken.key
 
 # Log Files
-tradeLog.csv
+tradesLog.csv

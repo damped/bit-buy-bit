@@ -8,6 +8,8 @@ import pprint
 import time
 import csv
 
+import q #debugger
+
 k = krakenex.API()
 #k.load_key('kraken.key')
 
@@ -25,15 +27,23 @@ try:
         
         #row_count = sum(1 for row in reader)
         all_lines = list(reader)
-        last_line = all_lines[-1]
+        q(all_lines[-1])
+        last_line = all_lines[-1][2]
 
-        last = last_line["result"]["last"]
-        print("Last: " + last)
+        #q(last_line)
+        last = int(last_line.replace('.',''))
+        
+        
+        
+        q(last)
+
+        
+
+        print("Last time in csv file: " + str(last))
         
 except:
     print("Error opening tradesLog.csv")
-    raise
-
+    #raise
 
 while 1:
 
@@ -45,7 +55,7 @@ while 1:
         try:
             r = k.query_public('Trades', {'pair': 'XXBTZUSD'})
         except:
-            print("Connecton Error...")
+            print("Connecton Error 1...")
             raise
          
         
@@ -53,20 +63,31 @@ while 1:
         try:
             r = k.query_public('Trades', {'pair': 'XXBTZUSD', 'since': last})
         except:
-            print("Connection Error...")
+            print("Connection Error 2...")
             raise
 
     last = r["result"]["last"]
 
     data = r["result"]["XXBTZUSD"]
+    
+    
+    data[-1:].append(last)
+    
 
-    pp.pprint(data)
+    q(data[-1:])
+    #q(last) 
+    
+    #q(type(data[2][2]))
 
     with open('tradesLog.csv', 'a', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
-        for line in data:
-            writer.writerow(line)
+        #for line in data:
+        #    #q(line)
+        #    writer.writerow(line)
+        writer.writerows(data)
+
+        #writer.append
 
 
     time.sleep(6)
