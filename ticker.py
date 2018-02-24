@@ -83,7 +83,7 @@ while 1:
 
 
 
-    time.sleep(6)
+    time.sleep(8)
 
 
 
