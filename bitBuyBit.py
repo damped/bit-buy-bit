@@ -25,10 +25,13 @@ def main(filename):
         ####resume(filename)
         # Start Threads
         # > API
+
+        dataLogger_q = queue.Queue()
+
         apiActive = threading.Event()
         apiActive.set()
         t_api = threading.Thread(name='API Thread',
-                target=api, args=(apiActive,))
+                target=api, args=(apiActive, dataLogger_q))
 
         t_api.start()
         
@@ -36,7 +39,7 @@ def main(filename):
         dataLoggerActive = threading.Event()
         dataLoggerActive.set()
         t_dataLogger = threading.Thread(name='Data Logger Thread',
-                target=dataLogger, args=(dataLoggerActive,))
+                target=dataLogger, args=(dataLoggerActive, dataLogger_q, filename))
 
         t_dataLogger.start()
 
@@ -84,7 +87,7 @@ def resume(filename):
         #print("Error opening " + filename)
         raise
 
-def api(apiActive):
+def api(apiActive, dataLogger_q):
     log = logging.getLogger('bitstamp.api.WSS')
     log.setLevel(logging.ERROR)
 
@@ -101,15 +104,31 @@ def api(apiActive):
 
             if r[0] == "live_trades" and r[1] == "BTCUSD":
                 data = json.loads(r[2])
-                print(data["price"], data["timestamp"])
+                #print(data["price"], data["timestamp"])
+                dataLogger_q.put(data, block=True)
             wss.data_q.task_done()
             
     wss.stop()
 
-def dataLogger(dataLoggerActive):
-    print("dataLogger")
-    time.sleep(10)
-    pass
+def dataLogger(dataLoggerActive, dataLogger_q, filename):
+    while dataLoggerActive.isSet():
+        try:
+            r = dataLogger_q.get(block=False)
+        except queue.Empty:
+            time.sleep(0.01)
+            pass
+        else:
+            print(r)
+
+            with open(filename, 'a', newline='') as csvfile:
+                
+                fieldnames = ['amount', 'buy_order_id', 'sell_order_id', 'amount_str',
+                        'price_str', 'timestamp', 'price', 'type', 'id']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                writer.writerow(r)
+
+
+            dataLogger_q.task_done()
 
 
 def parseOptions():
