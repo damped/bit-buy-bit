@@ -17,25 +17,34 @@ import json
 
 # Defaults
 filename = "csv.log"
-
+fieldnames = ['amount', 'buy_order_id', 'sell_order_id', 'amount_str', 'price_str', 'timestamp', 'price', 'type', 'id']
 
 def main(filename):
     try:
-        # Startup
-        ####resume(filename)
-        # Start Threads
-        # > API
 
         dataLogger_q = queue.Queue()
+        analysis_q = queue.Queue()
+        trading_q = queue.Queue()
+
+
+        # Startup
+
+        
+        resume(filename, [analysis_q])  
+
+        # Start Threads
+        # ---- API ----
+
 
         apiActive = threading.Event()
         apiActive.set()
         t_api = threading.Thread(name='API Thread',
-                target=api, args=(apiActive, dataLogger_q))
+                target=api, args=(apiActive, [dataLogger_q, analysis_q]))
 
         t_api.start()
         
 
+        # ---- Data Logger (For csv file) ----
         dataLoggerActive = threading.Event()
         dataLoggerActive.set()
         t_dataLogger = threading.Thread(name='Data Logger Thread',
@@ -43,51 +52,61 @@ def main(filename):
 
         t_dataLogger.start()
 
+
+        # ---- Analysis ----
+        analysisActive = threading.Event()
+        analysisActive.set()
+        t_analysis = threading.Thread(name='Analysis Thread',
+                target=analysis, args=(analysisActive, analysis_q, trading_q))
+
+        t_analysis.start()
+
         while True:
             time.sleep(1)
-        # > > Data Logger (For csv file)
-        # > > Analysis
-        # > > > Trade
+        # ---- Trade ----
 
     except KeyboardInterrupt:
         print("\r" + " " * 10)  # Remove ^C
         print("Keyboard interrupt")
         apiActive.clear()
-        t_api.join(0.1)
         dataLoggerActive.clear()
+        analysisActive.clear()
+        t_api.join(0.1)
         t_dataLogger.join(0.1)
+        t_analysis.join(0.1)
         
         
-        
-        #main_thread = threading.currentThread()
-        #for t in threading.enumerate():
-        #    print(t)
-        #    if t is not main_thread:
-        #        t.join(timeout=0.2)
 
-
-def resume(filename):
-    print("Resumeing from file: " + filename)
+def resume(filename, outputQueues):
     
     try:
         with open(filename, 'r') as csvfile:
-            reader = csv.reader(csvfile,delimiter=' ', quotechar='|')
+            print("Resumeing from file: " + filename)
+            reader = csv.DictReader(csvfile, fieldnames=fieldnames, delimiter=' ', quotechar='|')
             
             all_lines = list(reader)
-            lastTime = int(all_lines[-1][6])
-
+            lastTime = int(all_lines[-1]["timestamp"])
+            
             print('-' * 50)
-
             print("Last time in csv file: " + str(lastTime))
-            print(datetime.datetime.fromtimestamp(lastTime/10**9).strftime('[%Y-%m-%d] %A %B %e, %l:%M %p'))
-
+            print(datetime.datetime.fromtimestamp(lastTime).strftime('[%Y-%m-%d] %A %B %e, %l:%M %p'))
             print('-' * 50)
+
+            for line in all_lines:
+                for q in outputQueues:
+                    q.put(line, block = True)
+    
+    except FileNotFoundError:
+        print("File " + str(filename) + " does not exist. Creating...")
+        with open(filename, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer.writeheader()
 
     except:
         #print("Error opening " + filename)
         raise
 
-def api(apiActive, dataLogger_q):
+def api(apiActive, outputQueues):
     log = logging.getLogger('bitstamp.api.WSS')
     log.setLevel(logging.ERROR)
 
@@ -105,8 +124,11 @@ def api(apiActive, dataLogger_q):
             if r[0] == "live_trades" and r[1] == "BTCUSD":
                 data = json.loads(r[2])
                 #print(data["price"], data["timestamp"])
-                dataLogger_q.put(data, block=True)
-            wss.data_q.task_done()
+                #dataLogger_q.put(data, block=True)
+                for q in outputQueues:
+                    q.put(data, block=True)
+
+            #wss.data_q.task_done()
             
     wss.stop()
 
@@ -118,17 +140,31 @@ def dataLogger(dataLoggerActive, dataLogger_q, filename):
             time.sleep(0.01)
             pass
         else:
-            print(r)
 
             with open(filename, 'a', newline='') as csvfile:
                 
-                fieldnames = ['amount', 'buy_order_id', 'sell_order_id', 'amount_str',
-                        'price_str', 'timestamp', 'price', 'type', 'id']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow(r)
 
 
             dataLogger_q.task_done()
+
+def analysis(analysisActive, analysis_q, trading_q):
+    while analysisActive.isSet():
+        try:
+            r = analysis_q.get(block=False)
+        except queue.Empty:
+            time.sleep(0.01)
+            pass
+        else:
+            print(r["price"])
+
+            #if r["timestamp"] >= 
+
+
+
+            analysis_q.task_done()
+
 
 
 def parseOptions():
