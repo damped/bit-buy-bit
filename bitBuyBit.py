@@ -238,8 +238,8 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
 
 
 
-                        print("Long Avg:  " + str(lngAvg))
-                        print("Short Avg: " + str(srtAvg))
+                        print("Long Avg:  " + str(round(lngAvg,2)))
+                        print("Short Avg: " + str(round(srtAvg,2)))
 
 
 
@@ -256,9 +256,26 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
 
             analysis_q.task_done()
 
+class MA(object):
 
+    count = 0
 
+class EMA(MA):
+    """ https://bitbucket.org/aideaucegep/pyma """
 
+    def __init__(self, a):
+        self.a = a
+        self.last = 0
+
+    def compute(self, value):
+        #data is list of ordered value wich is already clean and numerical
+        if  self.count == 0 :
+            self.last = float(value)
+        else:
+            self.last = self.a *float(value) + (1-self.a)*float(self.last)
+        
+        self.count = self.count+1
+        return self.last
 
 def parseOptions():
     parser = argparse.ArgumentParser(description="Bit Buy Bit - Making you less poor, hopefully.")
