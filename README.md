@@ -1,5 +1,5 @@
 # Bit-Buy-Bit
-Bitcoin trading bot using Tensorflow (still in planning phase)
+Testing some simple stratigies. Not working yet
 
 
 ## Instalation
