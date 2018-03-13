@@ -15,6 +15,9 @@ from bitex.api.WSS import BitstampWSS
 import logging
 import json
 
+#Analysis Tools
+#import pyma
+
 import q # debuger
 
 
@@ -22,7 +25,7 @@ import q # debuger
 filename = "csv.log"
 #fieldnames = ['amount', 'buy_order_id', 'sell_order_id', 'amount_str', 'price_str', 'timestamp', 'price', 'type', 'id']
 fieldnames = ['amount', 'buy_order_id', 'sell_order_id', 'timestamp', 'price', 'type', 'id']
-lngAvgWindow = 6000
+lngAvgWindow = 60000
 srtAvgWindow = 10
 
 
@@ -215,6 +218,7 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
                         print("=" * 10)
 
                         # Recalculate
+                        """
                         sumof = 0.0
                         count = 0
                         for line in dataset:  # Loop through dataset
@@ -235,12 +239,29 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
                                     break
 
                         srtAvg = sumof / count
+                        """
+
+                        lngEMA = EMA(0.1)
+                        srtEMA = EMA(0.9)
 
 
+                        for line in dataset:
+                            lngEMA.compute(line["price"])
+                            srtEMA.compute(line["price"])
 
-                        print("Long Avg:  " + str(round(lngAvg,2)))
-                        print("Short Avg: " + str(round(srtAvg,2)))
 
+                        hist = 0.0
+                        pos = False 
+                        print("Long Avg:  " + str(round(lngEMA.last,2)))
+                        print("Short Avg: " + str(round(srtEMA.last,2)))
+                        if lngEMA.last + hist < srtEMA.last:
+                            print('\x1b[6;30;42m' + ' BUY ' + '\x1b[0m')
+                            pos = True
+                        elif lngEMA.last > srtEMA.last + hist:
+                            print('\x1b[6;30;41m' + ' SELL ' + '\x1b[0m')
+                            pos = False
+                        else:
+                            print("HOLD" + "- SELL" * int(pos))
 
 
             
@@ -252,16 +273,16 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
                 dataset.append(r)
                 fresh = True
 
-
-
             analysis_q.task_done()
+
+
 
 class MA(object):
 
     count = 0
 
+
 class EMA(MA):
-    """ https://bitbucket.org/aideaucegep/pyma """
 
     def __init__(self, a):
         self.a = a
@@ -276,6 +297,7 @@ class EMA(MA):
         
         self.count = self.count+1
         return self.last
+
 
 def parseOptions():
     parser = argparse.ArgumentParser(description="Bit Buy Bit - Making you less poor, hopefully.")
