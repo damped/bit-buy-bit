@@ -72,9 +72,9 @@ def main(filename):
 
         t_analysis.start()
 
+        # ---- Trade ----
         while True:
             time.sleep(1)
-        # ---- Trade ----
 
     except KeyboardInterrupt:
         print("\r" + " " * 10)  # Remove ^C
@@ -250,7 +250,7 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
                             srtEMA.compute(line["price"])
 
 
-                        hist = 0.0
+                        hist = 2.0
                         pos = False 
                         print("Long Avg:  " + str(round(lngEMA.last,2)))
                         print("Short Avg: " + str(round(srtEMA.last,2)))
