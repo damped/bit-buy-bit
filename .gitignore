@@ -105,7 +105,7 @@ ENV/
 *.swp
 
 #### KEYS!!!
-kraken.key
+*.key
 
 # Log Files
 tradesLog.csv

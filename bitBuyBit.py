@@ -73,6 +73,7 @@ def main(filename):
         t_analysis.start()
 
         # ---- Trade ----
+        
         while True:
             time.sleep(1)
 
@@ -297,6 +298,21 @@ class EMA(MA):
         
         self.count = self.count+1
         return self.last
+
+def trade():
+    """ 
+    buy signal? -> check current trade
+
+    no active trades -> send buy
+    active trades -> cancel
+    
+    """
+    pass
+
+
+
+
+
 
 
 def parseOptions():
