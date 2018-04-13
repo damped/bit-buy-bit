@@ -12,13 +12,16 @@ import ast  # literal_eval() to convert strings to correct datatypes
 
 #API
 from bitex.api.WSS import BitstampWSS
+from bitex import Bitstamp
+
+
 import logging
 import json
 
 #Analysis Tools
 #import pyma
 
-import q # debuger
+import q # debuger tail -f /tmp/q
 
 
 # Defaults
@@ -36,10 +39,11 @@ def main(filename):
         dataLogger_q = queue.Queue()
         analysis_q = queue.Queue()
         trading_q = queue.Queue()
+        display_q = queue.Queue()
 
 
         # Startup
-
+        b = Bitstamp(key_file='bs.key')
         
         resume(filename, [analysis_q])  
 
@@ -73,9 +77,21 @@ def main(filename):
         t_analysis.start()
 
         # ---- Trade ----
+        tradeActive = threading.Event()
+        tradeActive.set()
+        t_trade = threading.Thread(name='Trading Thread',
+                target=trade, args=(tradeActive, trading_q, display_q, b))
+
+        t_trade.start()
         
         while True:
-            time.sleep(1)
+            time.sleep(5)
+            
+            r = b.balance()
+            q(r.json())
+
+
+
 
     except KeyboardInterrupt:
         print("\r" + " " * 10)  # Remove ^C
@@ -83,9 +99,11 @@ def main(filename):
         apiActive.clear()
         dataLoggerActive.clear()
         analysisActive.clear()
+        tradeActive.clear()
         t_api.join(0.1)
         t_dataLogger.join(0.1)
         t_analysis.join(0.1)
+        t_trade.join(0.1)
         
 
 
@@ -198,6 +216,8 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
     fresh = False   # Flag to indicate dat fresh data to process
     oldestTime = 0  # Oldest time in dataset to trigger rescan
 
+    pos = None
+    lastPos = None
     while analysisActive.isSet():
 
 
@@ -251,18 +271,31 @@ def analysis(analysisActive, analysis_q, trading_q, lngAvgWindow):
                             srtEMA.compute(line["price"])
 
 
-                        hist = 2.0
-                        pos = False 
+                        hist = 3.0
+
                         print("Long Avg:  " + str(round(lngEMA.last,2)))
                         print("Short Avg: " + str(round(srtEMA.last,2)))
+                        print("Last:      " + str(dataset[-1]["price"]))
                         if lngEMA.last + hist < srtEMA.last:
                             print('\x1b[6;30;42m' + ' BUY ' + '\x1b[0m')
-                            pos = True
+                            pos = 'buy'
                         elif lngEMA.last > srtEMA.last + hist:
                             print('\x1b[6;30;41m' + ' SELL ' + '\x1b[0m')
-                            pos = False
+                            pos = 'sell'
                         else:
-                            print("HOLD" + "- SELL" * int(pos))
+                            print("HOLD")
+                            #pos = 'hold'
+
+
+
+
+                        if lastPos != pos:                          # limit to one entry into queue
+                            commit = {"position": pos, "price": dataset[-1]["price"]}
+                            trading_q.put(commit, block=True)
+
+                        lastPos = pos
+
+
 
 
             
@@ -299,15 +332,27 @@ class EMA(MA):
         self.count = self.count+1
         return self.last
 
-def trade():
+def trade(tradeActive, trading_q, display_q, b):
     """ 
-    buy signal? -> check current trade
-
-    no active trades -> send buy
-    active trades -> cancel
+    Buy Signal
+        Check 
     
     """
-    pass
+    while tradeActive.isSet():
+        try:
+            commit = trading_q.get(block=False)
+        except queue.Empty:
+            time.sleep(0.01)
+            pass
+        else:
+            if commit["position"] == 'buy':
+                print("Buying at:  " + str(commit["price"]))
+
+
+            elif commit["position"] == 'sell':
+                print("Selling at: " + str(commit["price"]))
+
+
 
 
 
