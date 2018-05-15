@@ -26,6 +26,7 @@ import q # debuger tail -f /tmp/q
 
 # Defaults
 filename = "csv.log"
+warmup = 10
 #fieldnames = ['amount', 'buy_order_id', 'sell_order_id', 'amount_str', 'price_str', 'timestamp', 'price', 'type', 'id']
 fieldnames = ['amount', 'buy_order_id', 'sell_order_id', 'timestamp', 'price', 'type', 'id']
 lngAvgWindow = 60000
@@ -33,7 +34,7 @@ srtAvgWindow = 10
 
 
 
-def main(filename):
+def main(filename, tradeEnabled):
     try:
 
         dataLogger_q = queue.Queue()
@@ -82,9 +83,17 @@ def main(filename):
         t_trade = threading.Thread(name='Trading Thread',
                 target=trade, args=(tradeActive, trading_q, display_q, b))
 
-        t_trade.start()
         
+        # ############### dirty hackjob ########
+        time.sleep(warmup)
+        print("sleep compleat!")
+
+        if tradeEnabled:
+            t_trade.start()
+
         while True:
+            
+
             time.sleep(5)
             
             r = b.balance()
@@ -103,7 +112,8 @@ def main(filename):
         t_api.join(0.1)
         t_dataLogger.join(0.1)
         t_analysis.join(0.1)
-        t_trade.join(0.1)
+        if tradeEnabled:
+            t_trade.join(0.1)
         
 
 
@@ -338,21 +348,29 @@ def trade(tradeActive, trading_q, display_q, b):
         Check 
     
     """
+    fresh = False
+
+
     while tradeActive.isSet():
         try:
             commit = trading_q.get(block=False)
         except queue.Empty:
-            time.sleep(0.01)
-            pass
-        else:
-            if commit["position"] == 'buy':
-                print("Buying at:  " + str(commit["price"]))
+
+            if fresh:  # If its hella fresh
+                if commit["position"] == 'buy':
+                    print("Buying at:  " + str(commit["price"]))
+                    r = b.bid('btcusd', commit["price"], 0.0014)
+                    q(r.json())
 
 
-            elif commit["position"] == 'sell':
-                print("Selling at: " + str(commit["price"]))
+                elif commit["position"] == 'sell':
+                    print("Selling at: " + str(commit["price"]))
+                    r = b.ask('btcusd', commit["price"], 0.0014)
+                    q(r.json())
+            fresh = False
 
-
+        else: 
+            fresh = True
 
 
 
@@ -364,6 +382,12 @@ def parseOptions():
     parser = argparse.ArgumentParser(description="Bit Buy Bit - Making you less poor, hopefully.")
     parser.add_argument('-f', '--file', dest='filename', default=filename, 
             help=("File name to log to (default: " + filename + ")"))
+    parser.add_argument('-t', '--trade', dest='tradeEnabled', action='store_true',
+            help=("Enable trading on the exchange"))
+    parser.set_defaults(tradeEnabled = False)
+
+    parser.add_argument('-w', '--warmup', dest='warmup', type=int, default=warmup,
+            help=("Warmup time in seconds befor trading starts (default: " + str(warmup) + ")"))
 
     return parser.parse_args()
 
@@ -374,6 +398,8 @@ if __name__ == '__main__':
 
     args = parseOptions()
     filename = args.filename
-    main(filename)
+    tradeEnabled = args.tradeEnabled
+    warmup = args.warmup
+    main(filename, tradeEnabled)
 
 
